@@ -1,9 +1,6 @@
 import { useSettings } from "@/context/settingsController";
-import { setServerIp } from "@/services/backendService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  Alert,
   ScrollView,
   Switch,
   Text,
@@ -20,24 +17,6 @@ export default function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState("192.168.0.115:8080");
   const [apiKey, setApiKey] = useState("••••••••••••••••");
   const [refreshInterval, setRefreshInterval] = useState("2");
-
-  // Betöltjük a mentett URL-t Androidon/iOS-en indításkor
-  useEffect(() => {
-    AsyncStorage.getItem("serverUrl").then((saved) => {
-      if (saved) {
-        setServerUrl(saved);
-      }
-    });
-  }, []);
-
-  const handleSaveSettings = async () => {
-    try {
-      await setServerIp(serverUrl);
-      Alert.alert("Success", "Server settings saved successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to save settings.");
-    }
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-100 dark:bg-slate-900">
@@ -110,10 +89,7 @@ export default function SettingsScreen() {
             onChangeText={setRefreshInterval}
           />
 
-          <TouchableOpacity
-            onPress={handleSaveSettings}
-            className="bg-blue-600 p-3.5 rounded-xl items-center"
-          >
+          <TouchableOpacity className="bg-blue-600 p-3.5 rounded-xl items-center">
             <Text className="text-white font-bold text-sm">
               Save Server Config
             </Text>
