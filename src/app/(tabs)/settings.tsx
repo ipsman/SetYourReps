@@ -1,14 +1,15 @@
 import { useSettings } from "@/context/settingsController";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   ScrollView,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 export default function SettingsScreen() {
   const { theme, setTheme } = useSettings();
@@ -19,36 +20,25 @@ export default function SettingsScreen() {
   const [refreshInterval, setRefreshInterval] = useState("2");
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-100 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-[#111111]">
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => router.back()}
+        className="flex-row items-center gap-1"
+      >
+        <MaterialCommunityIcons name="chevron-left" color="#FFFFFF" size={26} />
+        <Text className="text-[#FFFFFF] font-semibold text-base">Back</Text>
+      </TouchableOpacity>
       <ScrollView
-        className="flex-1 px-5 pt-2"
+        className="flex-1 px-5 pt-10"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <Text className="text-2xl font-bold text-center mb-5 text-slate-800 dark:text-white">
           Settings
         </Text>
-
-        {/* 1. App Téma Beállítások */}
-        <View className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm mb-4 border border-slate-200 dark:border-slate-700">
-          <Text className="text-xs font-bold text-slate-400 uppercase mb-2">
-            Appearance
-          </Text>
-          <View className="flex-row justify-between items-center py-2">
-            <Text className="text-base text-slate-700 dark:text-slate-200 font-medium">
-              Dark Mode
-            </Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={(value) => setTheme(value ? "dark" : "light")}
-              trackColor={{ false: "#cbd5e1", true: "#38bdf8" }}
-              thumbColor={"#ffffff"}
-            />
-          </View>
-        </View>
-
         {/* 2. Szerver Kapcsolat */}
-        <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl mb-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <View className="bg-[#242424] p-4 rounded-2xl mb-4 shadow-sm border border-[#353535]">
           <Text className="text-xs font-bold text-slate-400 uppercase mb-3">
             Server Connection
           </Text>
@@ -57,7 +47,7 @@ export default function SettingsScreen() {
             Server IP & Port (pl. 192.168.0.115:8080)
           </Text>
           <TextInput
-            className="border border-slate-200 dark:border-slate-700 p-3 rounded-xl mb-3 text-sm bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white"
+            className="border bg-[#111111] border-[#353535] p-3 rounded-xl mb-3 text-sm text-white"
             placeholder="192.168.0.115:8080"
             placeholderTextColor="#94a3b8"
             value={serverUrl}
@@ -69,7 +59,7 @@ export default function SettingsScreen() {
             API Token
           </Text>
           <TextInput
-            className="border border-slate-200 dark:border-slate-700 p-3 rounded-xl mb-3 text-sm bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white"
+            className="border bg-[#111111] border-[#353535] p-3 rounded-xl mb-3 text-sm text-white"
             placeholder="Enter API Key"
             placeholderTextColor="#94a3b8"
             secureTextEntry
@@ -81,7 +71,7 @@ export default function SettingsScreen() {
             Auto Refresh Interval (seconds)
           </Text>
           <TextInput
-            className="border border-slate-200 dark:border-slate-700 p-3 rounded-xl mb-4 text-sm bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white"
+            className="border bg-[#111111] border-[#353535] p-3 rounded-xl mb-3 text-sm text-white"
             placeholder="2"
             placeholderTextColor="#94a3b8"
             keyboardType="number-pad"
@@ -89,7 +79,7 @@ export default function SettingsScreen() {
             onChangeText={setRefreshInterval}
           />
 
-          <TouchableOpacity className="bg-blue-600 p-3.5 rounded-xl items-center">
+          <TouchableOpacity className="bg-[#F04438] border border-black p-3.5 rounded-xl items-center">
             <Text className="text-white font-bold text-sm">
               Save Server Config
             </Text>
@@ -97,9 +87,9 @@ export default function SettingsScreen() {
         </View>
 
         {/* 3. Credits / App Info */}
-        <View className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <View className="bg-[#242424] p-4 rounded-2xl shadow-sm border border-[#353535]">
           <Text className="text-base font-bold text-slate-700 dark:text-slate-200 mb-1">
-            HomeServer Dashboard
+            MaxYourReps
           </Text>
           <Text className="text-xs text-slate-400 dark:text-slate-400">
             Version 1.0.0 — Developed by Máté Auer ©️ MateDevs

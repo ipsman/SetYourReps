@@ -1,6 +1,13 @@
 import { CircularProgressBar } from "@/components/ProgressBar";
+import {
+  useWorkout,
+  WORKOUT_PLANS,
+  type DayKey,
+} from "@/context/workoutContext";
+import { type WorkoutPlanTemplate } from "@/data/workoutPlans";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { router } from "expo-router";
+import { useState } from "react";
 import {
   ImageBackground,
   Modal,
@@ -13,169 +20,47 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-type DayKey = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
-
-interface WeekDayItem {
-  day: DayKey;
-  icon: "run" | "bed" | "weight-lifter";
-  completed: boolean;
-  lastWorkout?: string;
-  durationMinutes?: number;
-}
-
-const INITIAL_WEEK_DAYS: WeekDayItem[] = [
-  {
-    day: "Mon",
-    icon: "run",
-    completed: true,
-    lastWorkout: "5 km Tempo Run",
-    durationMinutes: 35,
-  },
-  { day: "Tue", icon: "bed", completed: false },
-  {
-    day: "Wed",
-    icon: "weight-lifter",
-    completed: true,
-    lastWorkout: "Upper Body",
-    durationMinutes: 55,
-  },
-  { day: "Thu", icon: "bed", completed: false },
-  {
-    day: "Fri",
-    icon: "weight-lifter",
-    completed: true,
-    lastWorkout: "Pull Day",
-    durationMinutes: 60,
-  },
-  { day: "Sat", icon: "bed", completed: false },
-  {
-    day: "Sun",
-    icon: "weight-lifter",
-    completed: true,
-    lastWorkout: "Legs & Core",
-    durationMinutes: 50,
-  },
-];
-
-const QUICK_TEMPLATES: {
-  title: string;
-  type: "weight-lifter" | "run";
-  meta: string;
-}[] = [
-  { title: "Push Day", type: "weight-lifter", meta: "45-60m" },
-  { title: "Pull Day", type: "weight-lifter", meta: "45-60m" },
-  { title: "Cardio Run", type: "run", meta: "30m" },
-];
-
-function formatElapsed(totalSeconds: number): string {
-  const hrs = Math.floor(totalSeconds / 3600);
-  const mins = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return hrs > 0
-    ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}`
-    : `${pad(mins)}:${pad(secs)}`;
-}
-
 export default function HomeScreen() {
-  const [weekDays, setWeekDays] = useState<WeekDayItem[]>(INITIAL_WEEK_DAYS);
+  const {
+    weekDays,
+    selectedDay,
+    setSelectedDay,
+    isWorkoutActive,
+    startPlanSession,
+    startFreeWorkout,
+    saveCustomWorkoutForDay,
+    deleteWorkoutForDay,
+  } = useWorkout();
 
-  // Aktív edzés állapot
-  const [isWorkoutActive, setIsWorkoutActive] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [activeWorkoutTitle, setActiveWorkoutTitle] =
-    useState("Strength Session");
+  // Edzésválasztó modal (Start a workout gombra nyílik)
+  const [selectPlanModalVisible, setSelectPlanModalVisible] = useState(false);
 
   // Új edzés modal állapot
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<DayKey>("Thu");
   const [workoutName, setWorkoutName] = useState("");
   const [workoutType, setWorkoutType] = useState<"weight-lifter" | "run">(
     "weight-lifter",
   );
 
-  // Recent workouts részletező / törlő modal állapot
+  // Recent workouts részletező modal
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState<DayKey | null>(
     null,
   );
 
-  useEffect(() => {
-    if (!isWorkoutActive) return;
-
-    const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isWorkoutActive]);
-
-  const handleToggleWorkoutSession = () => {
-    if (!isWorkoutActive) {
-      setElapsedSeconds(0);
-      setIsWorkoutActive(true);
-    } else {
-      const completedMins = Math.max(1, Math.round(elapsedSeconds / 60));
-      setWeekDays((prev) =>
-        prev.map((item) =>
-          item.day === selectedDay
-            ? {
-                ...item,
-                completed: true,
-                icon: workoutType,
-                lastWorkout: activeWorkoutTitle.trim() || "Completed Workout",
-                durationMinutes: (item.durationMinutes ?? 0) + completedMins,
-              }
-            : item,
-        ),
-      );
-      setIsWorkoutActive(false);
-    }
+  const handleSelectPlan = (plan: WorkoutPlanTemplate) => {
+    startPlanSession(plan);
+    setSelectPlanModalVisible(false);
+    router.push("/workout");
   };
 
   const handleSaveNewWorkout = () => {
-    const cleanTitle = workoutName.trim() || "Custom Workout";
-    setWeekDays((prev) =>
-      prev.map((item) =>
-        item.day === selectedDay
-          ? {
-              ...item,
-              completed: true,
-              icon: workoutType,
-              lastWorkout: cleanTitle,
-              durationMinutes: item.durationMinutes ?? 40,
-            }
-          : item,
-      ),
-    );
+    saveCustomWorkoutForDay(selectedDay, workoutName, workoutType);
     setWorkoutName("");
     setAddModalVisible(false);
   };
 
   const handleDeleteWorkout = (dayToClear: DayKey) => {
-    setWeekDays((prev) =>
-      prev.map((item) =>
-        item.day === dayToClear
-          ? {
-              ...item,
-              completed: false,
-              icon: "bed",
-              lastWorkout: undefined,
-              durationMinutes: undefined,
-            }
-          : item,
-      ),
-    );
-    setSelectedWorkoutDay(null);
-  };
-
-  const handleRepeatWorkout = (item: WeekDayItem) => {
-    setSelectedDay(item.day);
-    setActiveWorkoutTitle(item.lastWorkout ?? "Workout");
-    if (item.icon === "run" || item.icon === "weight-lifter") {
-      setWorkoutType(item.icon);
-    }
-    setElapsedSeconds(0);
-    setIsWorkoutActive(true);
+    deleteWorkoutForDay(dayToClear);
     setSelectedWorkoutDay(null);
   };
 
@@ -201,30 +86,33 @@ export default function HomeScreen() {
         <View style={{ height: 256, width: "100%", overflow: "hidden" }}>
           <ImageBackground
             source={{
-              uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqPCjJ2wCZJgLWkRohoz84HNpZ76cAd6dM5rz8OvNRiw&s=10",
+              uri: "https://thumbs.dreamstime.com/b/bright-serene-gym-natural-light-streaming-large-windows-image-showcases-modern-gym-bathed-warm-sunlight-356039753.jpg",
             }}
             style={{ flex: 1, justifyContent: "space-between" }}
             resizeMode="cover"
           >
-            {/* Felső szöveg */}
-            <View
-              style={{
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                padding: 16,
-                zIndex: 2,
-              }}
-            >
-              <Text className="text-[#FFFFFF] font-bold text-2xl">
+            <View className="p-4">
+              <Text className="text-[#FFFFFF] font-bold text-2xl z-10">
                 Welcome back Máté!
               </Text>
-              <Text className="text-[#FFFFFF] text-base font-bold mt-1">
-                {isWorkoutActive
-                  ? `Workout in progress • ${formatElapsed(elapsedSeconds)}`
-                  : "Ready for a workout?"}
+              <Text className="text-[#FFFFFF] text-base font-bold mt-1 z-10">
+                Ready for a workout?
               </Text>
+              <LinearGradient
+                colors={["#00000015", "#000000"]}
+                start={{ x: 0.5, y: 1 }}
+                end={{ x: 0.5, y: 0 }}
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 170,
+                  zIndex: 0,
+                }}
+              />
             </View>
 
-            {/* Teljesen #111111-be kifutó alsó átmenet */}
             <LinearGradient
               colors={["transparent", "#111111"]}
               start={{ x: 0.5, y: 0 }}
@@ -241,7 +129,14 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
-        {/* Edzéskártya (negatív margóval kicsit rácsúszik a halványuló részre) */}
+        <TouchableOpacity
+          className="absolute bg-[#F04438]  rounded-full flex p-1 border border-black top-5 right-3 items-center justify-center"
+          onPress={() => router.push("/settings")}
+        >
+          <MaterialCommunityIcons name="cog" color="#ffffff" size={26} />
+        </TouchableOpacity>
+
+        {/* Edzéskártya */}
         <View className="bg-[#242424] border border-[#353535] rounded-2xl p-4 mx-4 -mt-6">
           <View className="flex-row items-center justify-between">
             <View className="flex-1 pr-2">
@@ -291,7 +186,6 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Jobb oldal: Új edzés hozzáadása */}
             <View className="border-l border-[#353535] px-3 pl-6 items-center justify-center">
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -312,7 +206,6 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Kiválasztott nap összefoglalója */}
           <View className="mt-3 pt-2.5 border-t border-[#353535] flex-row items-center justify-between">
             <Text className="text-[#A3A3A3] text-xs">
               {selectedDay}:{" "}
@@ -330,30 +223,17 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Aktív edzés státuszkártya */}
-        {isWorkoutActive && (
-          <View className="bg-[#1B1B1B] border border-[#35C878] rounded-2xl p-4 mx-4 mt-4">
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-[#35C878] text-xs font-bold uppercase">
-                  Active Session ({selectedDay})
-                </Text>
-                <Text className="text-[#FFFFFF] text-lg font-bold mt-0.5">
-                  {activeWorkoutTitle}
-                </Text>
-              </View>
-              <Text className="text-[#FFFFFF] text-2xl font-bold">
-                {formatElapsed(elapsedSeconds)}
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Fő CTA gomb */}
         <View className="mt-5 mx-4">
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={handleToggleWorkoutSession}
+            onPress={() => {
+              if (isWorkoutActive) {
+                router.push("/workout");
+              } else {
+                setSelectPlanModalVisible(true);
+              }
+            }}
             className={`w-full py-3.5 rounded-2xl items-center ${
               isWorkoutActive ? "bg-[#35C878]" : "bg-[#F04438]"
             }`}
@@ -363,7 +243,7 @@ export default function HomeScreen() {
                 isWorkoutActive ? "text-[#111111]" : "text-[#FFFFFF]"
               }`}
             >
-              {isWorkoutActive ? "Finish workout" : "Start a workout"}
+              {isWorkoutActive ? "Continue active workout" : "Start a workout"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -397,45 +277,6 @@ export default function HomeScreen() {
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
-
-        {/* Gyors edzéssablonok */}
-        <View className="mx-4 mt-5">
-          <Text className="text-[#FFFFFF] font-bold text-base mb-2.5">
-            Quick start templates
-          </Text>
-          <View className="flex-row gap-2.5">
-            {QUICK_TEMPLATES.map((tpl) => (
-              <TouchableOpacity
-                key={tpl.title}
-                activeOpacity={0.75}
-                onPress={() => {
-                  setActiveWorkoutTitle(tpl.title);
-                  setWorkoutType(tpl.type);
-                  setElapsedSeconds(0);
-                  setIsWorkoutActive(true);
-                }}
-                className="flex-1 bg-[#242424] border border-[#353535] rounded-2xl p-3"
-              >
-                <View className="w-7 h-7 rounded-full bg-[#1B1B1B] items-center justify-center mb-2">
-                  <MaterialCommunityIcons
-                    name={tpl.type}
-                    color="#F04438"
-                    size={16}
-                  />
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className="text-[#FFFFFF] font-bold text-xs"
-                >
-                  {tpl.title}
-                </Text>
-                <Text className="text-[#A3A3A3] text-[11px] mt-0.5">
-                  {tpl.meta}
-                </Text>
-              </TouchableOpacity>
-            ))}
           </View>
         </View>
 
@@ -496,6 +337,58 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      {/* Edzésválasztó Modal (csak Sheet 5 edzései) */}
+      <Modal
+        visible={selectPlanModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectPlanModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/75 justify-end">
+          <View className="bg-[#1B1B1B] border-t border-[#353535] rounded-t-3xl p-5 max-h-[82%]">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-[#FFFFFF] font-bold text-xl">
+                Choose workout plan
+              </Text>
+              <TouchableOpacity
+                onPress={() => setSelectPlanModalVisible(false)}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  color="#A3A3A3"
+                  size={24}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View className="gap-2.5 pb-2">
+                {WORKOUT_PLANS.map((plan) => (
+                  <TouchableOpacity
+                    key={plan.id}
+                    activeOpacity={0.8}
+                    onPress={() => handleSelectPlan(plan)}
+                    className="bg-[#242424] border border-[#353535] rounded-2xl p-4"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-[#FFFFFF] font-bold text-base flex-1 pr-2">
+                        {plan.title}
+                      </Text>
+                      <Text className="text-[#35C878] text-xs font-bold">
+                        {plan.exercises.length} gyakorlat
+                      </Text>
+                    </View>
+                    <Text className="text-[#A3A3A3] text-xs mt-1">
+                      {plan.subtitle} • ~{plan.estimatedMinutes} perc
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Új edzés felvétele Modal */}
       <Modal
         visible={addModalVisible}
@@ -521,10 +414,7 @@ export default function HomeScreen() {
             <Text className="text-[#A3A3A3] text-sm mb-1.5">Workout name</Text>
             <TextInput
               value={workoutName}
-              onChangeText={(text) => {
-                setWorkoutName(text);
-                if (text.trim()) setActiveWorkoutTitle(text);
-              }}
+              onChangeText={setWorkoutName}
               placeholder="e.g. Push Day or 5K Run"
               placeholderTextColor="#A3A3A3"
               className="bg-[#242424] border border-[#353535] text-[#FFFFFF] rounded-xl px-4 py-3 mb-4"
@@ -635,7 +525,24 @@ export default function HomeScreen() {
                 <View className="gap-3">
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => handleRepeatWorkout(selectedWorkoutItem)}
+                    onPress={() => {
+                      const matching = WORKOUT_PLANS.find(
+                        (p) => p.title === selectedWorkoutItem.lastWorkout,
+                      );
+                      setSelectedWorkoutDay(null);
+                      if (matching) {
+                        handleSelectPlan(matching);
+                      } else {
+                        startFreeWorkout(
+                          selectedWorkoutItem.lastWorkout ?? "Workout",
+                          selectedWorkoutItem.day,
+                          selectedWorkoutItem.icon === "run"
+                            ? "run"
+                            : "weight-lifter",
+                        );
+                        router.push("/workout");
+                      }
+                    }}
                     className="w-full py-3.5 bg-[#35C878] rounded-2xl items-center"
                   >
                     <Text className="text-[#111111] font-bold text-base">

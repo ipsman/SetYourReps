@@ -16,9 +16,9 @@ export default function TabLayout() {
           backgroundColor: isDarkMode ? "#0f172a" : "#ffffff",
           borderTopWidth: 1,
           borderTopColor: isDarkMode ? "#1e293b" : "#f1f5f9",
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 0,
+          paddingBottom: 0,
+          paddingTop: 0,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -29,16 +29,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Overview",
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <AntDesign name="dashboard" size={size} color={color?.toString()} />
+            <AntDesign name="home" size={size} color={color?.toString()} />
           ),
         }}
       />
       <Tabs.Screen
         name="storage"
         options={{
-          title: "Storage",
+          title: "Workout",
           tabBarIcon: ({ color, size }) => (
             <AntDesign name="database" size={size} color={color?.toString()} />
           ),
